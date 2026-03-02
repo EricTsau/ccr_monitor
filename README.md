@@ -1,33 +1,33 @@
 # CCR Monitor
 
-A Visual Studio Code extension for monitoring and managing [Claude Code Router (CCR)](https://github.com/musistudio/claude-code-router) provider health, configuration, and process lifecycle.
+一個用於監控與管理 [Claude Code Router (CCR)](https://github.com/musistudio/claude-code-router) 供應商健康狀態、設定檔及程序生命週期的 Visual Studio Code 擴充套件。
 
-## Features
+## 功能特色
 
-- **Health Monitoring** — Periodically checks all model providers in your CCR config to see if they're alive
-- **Status Bar Indicator** — Color-coded status bar icon (green/yellow/red) for at-a-glance provider health
-- **Dashboard** — Webview panel showing all provider health cards, router config summary, and quick switch controls
-- **Config Editor** — Visual form-based editor for providers, router rules, and settings
-- **Quick Switch** — One-click switching of the default provider when one goes down
-- **CCR Process Management** — Detect, restart, and manage the CCR process from within VS Code
-- **Multi-config Support** — Works with both global and project-level CCR configs
+- **健康狀態監控** — 定期檢查 CCR 設定中所有模型供應商的連線狀態以確保正常運作
+- **狀態列指示器** — 透過顏色圖示（綠/黃/紅）一眼看出供應商健康狀態
+- **控制面板（Dashboard）** — 透過 Webview 面板顯示所有供應商的健康狀態卡片、路由設定摘要，並提供快速切換控制
+- **設定檔編輯器** — 視覺化表單編輯器，用於修改供應商、路由規則及相關設定
+- **快速切換** — 當某個供應商發生異常時，可一鍵切換預設供應商
+- **CCR 程序管理** — 可直接在 VS Code 內偵測、重新啟動及管理 CCR 程序
+- **支援多層級設定** — 支援全域（Global）與專案層級（Project-level）的 CCR 設定檔
 
-## Prerequisites
+## 系統需求
 
 - [Node.js](https://nodejs.org/) >= 18
-- [Claude Code Router](https://github.com/musistudio/claude-code-router) installed and configured
+- 已安裝並設定完成的 [Claude Code Router](https://github.com/musistudio/claude-code-router)
 - VS Code >= 1.85.0
 
-## Installation
+## 安裝方式
 
-### From VSIX (Local Build)
+### 從 VSIX 安裝（本地建置）
 
-1. Build the extension (see [Development](#development) below)
-2. In VS Code, open the Command Palette (`Ctrl+Shift+P`)
-3. Run `Extensions: Install from VSIX...`
-4. Select the generated `.vsix` file
+1. 建置擴充套件（請參考下方的 [開發指南](#開發指南)）
+2. 在 VS Code 中開啟命令面板（Command Palette, `Ctrl+Shift+P`）
+3. 執行 `Extensions: Install from VSIX...`
+4. 選擇產生出的 `.vsix` 檔案
 
-### From Source
+### 從原始碼安裝
 
 ```bash
 git clone <repo-url> ccr-monitor
@@ -36,70 +36,70 @@ npm install
 npm run compile
 ```
 
-Then press `F5` in VS Code to launch the Extension Development Host.
+接著在 VS Code 中按下 `F5` 以啟動 Extension Development Host。
 
-## Configuration
+## 設定
 
-The extension reads CCR config from these locations (in priority order):
+本擴充套件會從以下位置讀取 CCR 設定檔（依優先順序配置）：
 
-1. **Project-level**: `{workspaceFolder}/.claude-code-router/config.json`
-2. **Global**: `~/.claude-code-router/config.json`
+1. **專案層級**：`{workspaceFolder}/.claude-code-router/config.json`
+2. **全域**：`~/.claude-code-router/config.json`
 
-### Extension Settings
+### 擴充套件設定項目
 
-| Setting | Default | Description |
+| 設定名稱 | 預設值 | 說明 |
 |---------|---------|-------------|
-| `ccr-monitor.healthCheckInterval` | `60` | Health check interval in seconds |
-| `ccr-monitor.globalConfigPath` | `~/.claude-code-router/config.json` | Path to global CCR config |
-| `ccr-monitor.healthCheckTimeout` | `5000` | Health check request timeout in ms |
+| `ccr-monitor.healthCheckInterval` | `60` | 健康檢查間隔（秒） |
+| `ccr-monitor.globalConfigPath` | `~/.claude-code-router/config.json` | 全域 CCR 設定檔路徑 |
+| `ccr-monitor.healthCheckTimeout` | `5000` | 健康檢查請求逾時時間（毫秒） |
 
-## Usage
+## 使用方式
 
-### Opening the Dashboard
+### 開啟控制面板（Dashboard）
 
-- Click the **CCR** status bar item (bottom right), or
-- Run command `CCR Monitor: Open Dashboard` from the Command Palette
+- 點擊狀態列（右下角）的 **CCR** 項目，或者
+- 從命令面板執行 `CCR Monitor: Open Dashboard` 指令
 
-### Understanding the Status Bar
+### 狀態列圖示說明
 
-| Icon | Meaning |
+| 圖示 | 意義 |
 |------|---------|
-| $(check) CCR | All providers healthy |
-| $(warning) CCR (yellow) | Some providers down |
-| $(error) CCR (red) | All providers down |
-| $(sync~spin) CCR | Checking... |
+| $(check) CCR | 所有供應商皆正常 |
+| $(warning) CCR (黃色) | 部分供應商異常 |
+| $(error) CCR (紅色) | 所有供應商皆異常 |
+| $(sync~spin) CCR | 檢查中... |
 
-### Editing a Provider
+### 編輯供應商
 
-1. Open the Dashboard
-2. Click **Edit** on a provider card
-3. Modify the form fields
-4. Click **Save**
-5. Choose whether to restart CCR to apply changes
+1. 開啟控制面板
+2. 在供應商卡片上點擊 **Edit**
+3. 修改表單欄位
+4. 點擊 **Save**
+5. 選擇是否重新啟動 CCR 以套用變更
 
-### Quick Switching Providers
+### 快速切換供應商
 
-When a provider goes down:
+當供應商發生異常時：
 
-1. Open the Dashboard
-2. In the **Quick Switch** section, select a healthy provider/model from the dropdown
-3. Click **Apply & Restart**
+1. 開啟控制面板
+2. 在 **Quick Switch** 區塊，從下拉選單選擇一個正常的供應商/模型
+3. 點擊 **Apply & Restart**
 
-### Editing Router Rules
+### 編輯路由規則
 
-1. Open the Dashboard
-2. Click **Edit Router** next to the Current Router section
-3. Set provider,model pairs for each route (default, background, think, etc.)
-4. Click **Save Router**
+1. 開啟控制面板
+2. 點擊 Current Router 區塊旁的 **Edit Router**
+3. 為每個路由（default, background, think 等）設定供應商與模型配對
+4. 點擊 **Save Router**
 
-### Restarting CCR
+### 重新啟動 CCR
 
-- Click **Restart CCR** in the Dashboard footer, or
-- Run command `CCR Monitor: Restart CCR` from the Command Palette
+- 點擊控制面板底部的 **Restart CCR**，或者
+- 從命令面板執行 `CCR Monitor: Restart CCR` 指令
 
-## Development
+## 開發指南
 
-### Setup
+### 環境設置
 
 ```bash
 git clone <repo-url> ccr-monitor
@@ -107,68 +107,68 @@ cd ccr-monitor
 npm install
 ```
 
-### Build
+### 建置
 
 ```bash
-npm run compile    # One-time compile
-npm run watch      # Watch mode for development
+npm run compile    # 單次建置
+npm run watch      # 監聽模式（開發用）
 ```
 
-### Run & Debug
+### 執行與偵錯
 
-1. Open the project in VS Code
-2. Press `F5` to launch Extension Development Host
-3. The extension activates automatically on startup
+1. 在 VS Code 中開啟專案
+2. 按 `F5` 啟動 Extension Development Host
+3. 擴充套件將在啟動時自動啟用
 
-### Package
+### 打包套件
 
 ```bash
 npm run package
 ```
 
-Generates `ccr-monitor-<version>.vsix` in the project root.
+會在專案根目錄下產生 `ccr-monitor-<version>.vsix` 檔案。
 
-### Project Structure
+### 專案結構
 
 ```
 ccr-monitor/
-├── package.json              # Extension manifest
-├── tsconfig.json             # TypeScript config
+├── package.json              # 擴充套件資訊
+├── tsconfig.json             # TypeScript 設定
 ├── src/
-│   ├── extension.ts          # Entry point — wires services and views
+│   ├── extension.ts          # 進入點 — 連結各服務與視圖
 │   ├── services/
-│   │   ├── healthMonitor.ts  # Periodic health checks via HTTP GET /models
-│   │   ├── configManager.ts  # Read/write/watch CCR config.json
-│   │   └── ccrProcess.ts     # CCR process detection and restart
+│   │   ├── healthMonitor.ts  # 透過 HTTP GET /models 定期檢查健康狀態
+│   │   ├── configManager.ts  # 讀取/寫入/監聽 CCR config.json
+│   │   └── ccrProcess.ts     # 偵測與重新啟動 CCR 程序
 │   ├── views/
-│   │   ├── statusBar.ts      # Status bar color indicator
-│   │   └── webviewPanel.ts   # Webview panel lifecycle and messaging
+│   │   ├── statusBar.ts      # 狀態列顏色指示器
+│   │   └── webviewPanel.ts   # Webview 面板生命週期與訊息溝通
 │   ├── webview/
-│   │   ├── index.html        # Dashboard HTML
-│   │   ├── main.js           # Dashboard client-side logic
-│   │   └── style.css         # Styles using VS Code theme variables
+│   │   ├── index.html        # 控制面板 HTML
+│   │   ├── main.js           # 控制面板客戶端邏輯
+│   │   └── style.css         # 使用 VS Code 主題變數的樣式
 │   └── types/
-│       └── config.ts         # TypeScript type definitions
+│       └── config.ts         # TypeScript 型別定義
 └── docs/
-    └── plans/                # Design and implementation docs
+    └── plans/                # 設計與實作文件
 ```
 
-## How It Works
+## 運作原理
 
-1. On activation, the extension loads the CCR `config.json` (project-level first, then global)
-2. A background timer pings each provider's `/models` endpoint every 60 seconds
-3. Health results update the status bar indicator and the Webview dashboard
-4. The Webview communicates with the extension host via `postMessage` for edits and actions
-5. Config changes are written to disk, and CCR can be restarted from within VS Code
+1. 擴充套件啟用時，會讀取 CCR 的 `config.json`（優先讀取專案層級，其次為全域）。
+2. 背景計時器會每隔 60 秒針對每個供應商的 `/models` 端點進行 Ping 測試。
+3. 檢查結果會更新至狀態列指示器與 Webview 控制面板。
+4. Webview 透過 `postMessage` 與擴充套件宿主（Host）通訊，以進行編輯和互動。
+5. 設定變更會寫入硬碟，且可從 VS Code 內部重新啟動 CCR。
 
-## Contributing
+## 參與貢獻
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run `npm run compile` to verify
-5. Submit a pull request
+1. Fork 此儲存庫
+2. 建立新的功能分支 (Feature branch)
+3. 提交您的變更
+4. 執行 `npm run compile` 以確認建置無誤
+5. 提交 Pull Request (PR)
 
-## License
+## 授權條款
 
 MIT
