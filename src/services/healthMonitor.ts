@@ -10,6 +10,19 @@ export class HealthMonitor implements vscode.Disposable {
   private _healthMap: Map<string, ProviderHealth> = new Map();
   private readonly _onDidUpdateHealth = new vscode.EventEmitter<Map<string, ProviderHealth>>();
   readonly onDidUpdateHealth = this._onDidUpdateHealth.event;
+  private _outputChannel: vscode.OutputChannel | null = null;
+
+  private get outputChannel(): vscode.OutputChannel {
+    if (!this._outputChannel) {
+      this._outputChannel = vscode.window.createOutputChannel('CCR Monitor Health');
+    }
+    return this._outputChannel;
+  }
+
+  private log(message: string): void {
+    const timestamp = new Date().toISOString();
+    this.outputChannel.appendLine(`[${timestamp}] ${message}`);
+  }
 
   constructor(private readonly configManager: ConfigManager) {}
 
@@ -18,6 +31,20 @@ export class HealthMonitor implements vscode.Disposable {
   }
 
   getOverallHealth(): OverallHealth {
+    const config = this.configManager.config;
+    if (!config || !config.Router || !config.Router.default) {
+      return this._calculateFromHealthMap();
+    }
+
+    const defaultValue = config.Router.default;
+    const parts = defaultValue.split('/');
+    const defaultProvider = parts[0];
+    const defaultModel = parts.length > 1 ? parts[1] : undefined;
+
+    return this._calculateWithDefault(defaultProvider, defaultModel);
+  }
+
+  private _calculateFromHealthMap(): OverallHealth {
     if (this._healthMap.size === 0) { return 'checking'; }
     const statuses = [...this._healthMap.values()].map(h => h.status);
     if (statuses.every(s => s === 'checking')) { return 'checking'; }
@@ -26,10 +53,41 @@ export class HealthMonitor implements vscode.Disposable {
     return 'partial';
   }
 
+  private _calculateWithDefault(defaultProvider: string, defaultModel?: string): OverallHealth {
+    const defaultHealth = this._healthMap.get(defaultProvider);
+
+    if (!defaultHealth || defaultHealth.status !== 'healthy') {
+      // Default provider unavailable, check if any other providers are healthy
+      const healthyCount = [...this._healthMap.values()].filter(h => h.status === 'healthy').length;
+      return healthyCount > 0 ? 'default-unavailable' : 'all-down';
+    }
+
+    // Default provider is healthy, check if model exists
+    if (defaultModel && defaultHealth.availableModels.length > 0) {
+      // Check if the model exists in available models (handle both full names and simple names)
+      const modelExists = defaultHealth.availableModels.some((m) => {
+        // Match either exact ID or the last part after /
+        return m === defaultModel || m.endsWith(`/${defaultModel}`) || m === defaultModel.split('/').pop();
+      });
+
+      if (!modelExists) {
+        // Default model not available in this provider
+        const healthyCount = [...this._healthMap.values()].filter(h => h.status === 'healthy').length;
+        return healthyCount > 0 ? 'default-unavailable' : 'all-down';
+      }
+    }
+
+    return 'all-healthy';
+  }
+
   start(): void {
     this.checkAll();
     const intervalSec = vscode.workspace.getConfiguration('ccr-monitor').get<number>('healthCheckInterval') ?? 60;
     this._timer = setInterval(() => this.checkAll(), intervalSec * 1000);
+  }
+
+  showLog(): void {
+    this.outputChannel.show();
   }
 
   stop(): void {
@@ -56,6 +114,7 @@ export class HealthMonitor implements vscode.Disposable {
       error: null,
       modelCount: provider.models.length,
       lastChecked: Date.now(),
+      availableModels: [],
     };
     this._healthMap.set(provider.name, entry);
 
@@ -63,18 +122,23 @@ export class HealthMonitor implements vscode.Disposable {
 
     try {
       const modelsUrl = this._buildModelsUrl(provider.api_base_url);
+      this.log(`Checking provider "${provider.name}": ${modelsUrl}`);
       const apiKey = this._getFirstResolvedKey(provider);
       const start = Date.now();
-      await this._httpGet(modelsUrl, apiKey, timeoutMs);
+      const result = await this._httpGet(modelsUrl, apiKey, timeoutMs);
       const latency = Date.now() - start;
 
       entry.status = 'healthy';
       entry.latencyMs = latency;
       entry.error = null;
+      entry.availableModels = result.models;
+      this.log(`  -> SUCCESS (${latency}ms, ${result.models.length} models)`);
     } catch (err: unknown) {
       entry.status = 'unhealthy';
       entry.latencyMs = null;
       entry.error = err instanceof Error ? err.message : String(err);
+      entry.availableModels = [];
+      this.log(`  -> FAILED: ${entry.error}`);
     }
 
     entry.lastChecked = Date.now();
@@ -95,7 +159,54 @@ export class HealthMonitor implements vscode.Disposable {
     return keys.length > 0 ? keys[0] : null;
   }
 
-  private _httpGet(url: string, apiKey: string | null, timeoutMs: number): Promise<number> {
+  private _shouldBypassProxy(hostname: string): boolean {
+    // Get NO_PROXY from VS Code settings, then environment
+    const noProxySetting = vscode.workspace.getConfiguration('http').get<string>('proxyBypass');
+    const noProxy = noProxySetting ||
+                    process.env.NO_PROXY || process.env.no_proxy || '';
+
+    if (!noProxy) { return false; }
+
+    const noProxyList = noProxy.split(',').map(s => s.trim());
+    const targetHostname = hostname.toLowerCase();
+
+    for (const pattern of noProxyList) {
+      if (pattern === '*') { return true; }
+      // Remove leading dots for comparison
+      const cleanPattern = pattern.replace(/^\.+/, '').toLowerCase();
+      const cleanTarget = targetHostname.replace(/^\.+/, '');
+      // Exact match or suffix match
+      if (cleanTarget === cleanPattern || cleanTarget.endsWith('.' + cleanPattern)) {
+        return true;
+      }
+      // CIDR notation for IP ranges
+      if (cleanPattern.includes('/')) {
+        try {
+          if (this._ipMatchesCidr(hostname, cleanPattern)) {
+            return true;
+          }
+        } catch {
+          // Ignore invalid CIDR
+        }
+      }
+    }
+    return false;
+  }
+
+  private _ipMatchesCidr(ip: string, cidr: string): boolean {
+    const [range, bits] = cidr.split('/');
+    const mask = parseInt(bits, 10);
+    if (isNaN(mask) || mask < 0 || mask > 32) { return false; }
+    const ipParts = ip.split('.').map(Number);
+    const rangeParts = range.split('.').map(Number);
+    if (ipParts.length !== 4 || rangeParts.some(isNaN)) { return false; }
+    const ipInt = (ipParts[0] << 24) | (ipParts[1] << 16) | (ipParts[2] << 8) | ipParts[3];
+    const rangeInt = (rangeParts[0] << 24) | (rangeParts[1] << 16) | (rangeParts[2] << 8) | rangeParts[3];
+    const maskInt = ~((1 << (32 - mask)) - 1) >>> 0;
+    return ((ipInt & maskInt) === (rangeInt & maskInt));
+  }
+
+  private _httpGet(url: string, apiKey: string | null, timeoutMs: number): Promise<{ status: number; models: string[] }> {
     return new Promise((resolve, reject) => {
       const parsed = new URL(url);
       const mod = parsed.protocol === 'https:' ? https : http;
@@ -104,25 +215,58 @@ export class HealthMonitor implements vscode.Disposable {
         headers['Authorization'] = `Bearer ${apiKey}`;
       }
 
-      const req = mod.get(
-        {
-          hostname: parsed.hostname,
-          port: parsed.port || undefined,
-          path: parsed.pathname + parsed.search,
-          headers,
-          timeout: timeoutMs,
-        },
-        (res) => {
-          res.on('data', () => {});
-          res.on('end', () => {
-            if (res.statusCode && res.statusCode >= 200 && res.statusCode < 400) {
-              resolve(res.statusCode);
-            } else {
-              reject(new Error(`HTTP ${res.statusCode}`));
+      // Get proxy from VS Code settings, then environment
+      const proxySetting = vscode.workspace.getConfiguration('http').get<string>('proxy');
+      const proxyUrl = proxySetting ||
+                       process.env.HTTP_PROXY || process.env.http_proxy ||
+                       process.env.HTTPS_PROXY || process.env.https_proxy || '';
+
+      // Check if we should bypass proxy for this host
+      const bypassProxy = this._shouldBypassProxy(parsed.hostname);
+
+      const options: https.RequestOptions = {
+        hostname: parsed.hostname,
+        port: parsed.port || undefined,
+        path: parsed.pathname + parsed.search,
+        headers,
+        timeout: timeoutMs,
+      };
+
+      // If proxy is set and not bypassing, use it
+      if (proxyUrl && !bypassProxy) {
+        this.log(`  Using proxy: ${proxyUrl}`);
+        try {
+          const ProxyAgent = require('proxy-agent');
+          const agent = new ProxyAgent(proxyUrl);
+          (options as https.RequestOptions & { agent: typeof agent }).agent = agent;
+        } catch {
+          this.log(`  Failed to parse proxy URL: ${proxyUrl}`);
+        }
+      } else if (bypassProxy) {
+        this.log(`  Bypassing proxy for: ${parsed.hostname}`);
+      }
+
+      const req = mod.get(options, (res) => {
+        let data = '';
+        res.on('data', (chunk) => { data += chunk; });
+        res.on('end', () => {
+          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 400) {
+            // Parse models from response
+            let models: string[] = [];
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.data && Array.isArray(parsed.data)) {
+                models = parsed.data.map((m: { id: string }) => m.id);
+              }
+            } catch {
+              // If parsing fails, return empty array
             }
-          });
-        },
-      );
+            resolve({ status: res.statusCode, models });
+          } else {
+            reject(new Error(`HTTP ${res.statusCode}`));
+          }
+        });
+      });
 
       req.on('timeout', () => {
         req.destroy();
@@ -135,5 +279,9 @@ export class HealthMonitor implements vscode.Disposable {
   dispose(): void {
     this.stop();
     this._onDidUpdateHealth.dispose();
+    if (this._outputChannel) {
+      this._outputChannel.dispose();
+      this._outputChannel = null;
+    }
   }
 }

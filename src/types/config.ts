@@ -45,9 +45,10 @@ export interface ProviderHealth {
   error: string | null;
   modelCount: number;
   lastChecked: number;
+  availableModels: string[];
 }
 
-export type OverallHealth = 'all-healthy' | 'partial' | 'all-down' | 'checking' | 'not-installed';
+export type OverallHealth = 'all-healthy' | 'partial' | 'all-down' | 'checking' | 'not-installed' | 'default-unavailable';
 
 export interface ConfigSource {
   type: 'global' | 'project';
