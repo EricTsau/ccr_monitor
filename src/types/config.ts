@@ -47,7 +47,7 @@ export interface ProviderHealth {
   lastChecked: number;
 }
 
-export type OverallHealth = 'all-healthy' | 'partial' | 'all-down' | 'checking';
+export type OverallHealth = 'all-healthy' | 'partial' | 'all-down' | 'checking' | 'not-installed';
 
 export interface ConfigSource {
   type: 'global' | 'project';

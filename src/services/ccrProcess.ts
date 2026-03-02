@@ -7,6 +7,15 @@ const execAsync = promisify(exec);
 export class CcrProcessManager implements vscode.Disposable {
   private _terminal: vscode.Terminal | null = null;
 
+  async isInstalled(): Promise<boolean> {
+    try {
+      await execAsync('npx claude-code-router --version', { timeout: 5000 });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async isRunning(): Promise<boolean> {
     try {
       const { stdout } = await execAsync('pgrep -f claude-code-router');

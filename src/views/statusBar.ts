@@ -36,6 +36,12 @@ export class StatusBarManager implements vscode.Disposable {
         this._item.color = undefined;
         this._item.tooltip = 'CCR Monitor - All providers down!';
         break;
+      case 'not-installed':
+        this._item.text = '$(x) CCR: not installed';
+        this._item.backgroundColor = undefined;
+        this._item.color = new vscode.ThemeColor('descriptionForeground');
+        this._item.tooltip = 'CCR Monitor - Claude Code Router not installed. Click to learn more.';
+        break;
       case 'checking':
       default:
         this._item.text = '$(sync~spin) CCR';

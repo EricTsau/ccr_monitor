@@ -6,11 +6,36 @@ import { StatusBarManager } from './views/statusBar';
 import { WebviewPanelManager, WebviewMessage, WebviewState } from './views/webviewPanel';
 import { CcrConfig } from './types/config';
 
-export function activate(context: vscode.ExtensionContext) {
-  const configManager = new ConfigManager();
-  const healthMonitor = new HealthMonitor(configManager);
+export async function activate(context: vscode.ExtensionContext) {
   const ccrProcess = new CcrProcessManager();
   const statusBar = new StatusBarManager();
+
+  // Check if CCR is installed
+  const installed = await ccrProcess.isInstalled();
+  if (!installed) {
+    statusBar.update('not-installed');
+    const webviewPanel = new WebviewPanelManager(context.extensionUri);
+    context.subscriptions.push(
+      vscode.commands.registerCommand('ccr-monitor.openDashboard', () => {
+        webviewPanel.show();
+        webviewPanel.postState({
+          config: null,
+          healthMap: {},
+          activeSource: null,
+          availableSources: [],
+          ccrRunning: false,
+        });
+      }),
+      vscode.commands.registerCommand('ccr-monitor.refreshHealth', () => {}),
+      vscode.commands.registerCommand('ccr-monitor.restartCcr', () => {}),
+    );
+    context.subscriptions.push(statusBar, ccrProcess, webviewPanel);
+    console.log('CCR Monitor: Claude Code Router not installed, skipping health monitoring');
+    return;
+  }
+
+  const configManager = new ConfigManager();
+  const healthMonitor = new HealthMonitor(configManager);
   const webviewPanel = new WebviewPanelManager(context.extensionUri);
 
   // Load config
