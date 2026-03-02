@@ -1,0 +1,63 @@
+{
+  "name": "ccr-monitor",
+  "displayName": "CCR Monitor",
+  "description": "Monitor Claude Code Router provider health, view/edit config, and manage CCR process",
+  "version": "0.1.0",
+  "publisher": "ccr-monitor",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ccr-monitor.openDashboard",
+        "title": "CCR Monitor: Open Dashboard"
+      },
+      {
+        "command": "ccr-monitor.refreshHealth",
+        "title": "CCR Monitor: Refresh Health Check"
+      },
+      {
+        "command": "ccr-monitor.restartCcr",
+        "title": "CCR Monitor: Restart CCR"
+      }
+    ],
+    "configuration": {
+      "title": "CCR Monitor",
+      "properties": {
+        "ccr-monitor.healthCheckInterval": {
+          "type": "number",
+          "default": 60,
+          "description": "Health check interval in seconds"
+        },
+        "ccr-monitor.globalConfigPath": {
+          "type": "string",
+          "default": "~/.claude-code-router/config.json",
+          "description": "Path to global CCR config.json"
+        },
+        "ccr-monitor.healthCheckTimeout": {
+          "type": "number",
+          "default": 5000,
+          "description": "Health check request timeout in milliseconds"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "npx @vscode/vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.0.0",
+    "typescript": "^5.5.0"
+  }
+}
