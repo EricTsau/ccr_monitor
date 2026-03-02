@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'none'; style-src {{cspSource}} 'nonce-{{nonce}}'; script-src 'nonce-{{nonce}}';">
+  <link rel="stylesheet" href="{{cssUri}}">
+  <title>CCR Monitor</title>
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header id="header">
+      <h1>CCR Monitor</h1>
+      <div id="config-source-switcher">
+        <label for="config-source">Config:</label>
+        <select id="config-source"></select>
+      </div>
+      <div id="header-actions">
+        <button id="btn-refresh" title="Refresh Health Check">Refresh</button>
+        <button id="btn-add-provider" title="Add Provider">+ Add Provider</button>
+      </div>
+    </header>
+
+    <!-- No config warning -->
+    <div id="no-config" class="hidden">
+      <p>No CCR config.json found. Please ensure Claude Code Router is configured.</p>
+      <p>Expected locations:</p>
+      <ul>
+        <li><code>~/.claude-code-router/config.json</code> (global)</li>
+        <li><code>.claude-code-router/config.json</code> (project)</li>
+      </ul>
+    </div>
+
+    <!-- Dashboard -->
+    <section id="dashboard" class="hidden">
+      <!-- Provider cards -->
+      <div id="provider-cards"></div>
+
+      <!-- Router Summary -->
+      <div id="router-section">
+        <h2>Current Router
+          <button id="btn-edit-router" class="btn-small">Edit Router</button>
+        </h2>
+        <div id="router-summary"></div>
+        <div id="router-editor" class="hidden"></div>
+      </div>
+
+      <!-- Quick Switch -->
+      <div id="quick-switch">
+        <h2>Quick Switch</h2>
+        <div id="quick-switch-controls"></div>
+      </div>
+    </section>
+
+    <!-- Provider Editor (shown when editing) -->
+    <section id="provider-editor-section" class="hidden">
+      <h2 id="provider-editor-title">Edit Provider</h2>
+      <form id="provider-form">
+        <div class="form-group">
+          <label for="pf-name">Name</label>
+          <input type="text" id="pf-name" required>
+        </div>
+        <div class="form-group">
+          <label for="pf-url">API Base URL</label>
+          <input type="text" id="pf-url" required placeholder="https://api.example.com/v1/chat/completions">
+        </div>
+        <div class="form-group">
+          <label>API Keys</label>
+          <div id="pf-keys-list"></div>
+          <button type="button" id="pf-add-key" class="btn-small">+ Add Key</button>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label><input type="checkbox" id="pf-rotation"> Enable Key Rotation</label>
+          </div>
+          <div class="form-group">
+            <label for="pf-rotation-strategy">Strategy</label>
+            <select id="pf-rotation-strategy">
+              <option value="round-robin">round-robin</option>
+              <option value="random">random</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label><input type="checkbox" id="pf-retry"> Retry on Failure</label>
+          </div>
+          <div class="form-group">
+            <label for="pf-max-retries">Max Retries</label>
+            <input type="number" id="pf-max-retries" min="0" max="10" value="3">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Models</label>
+          <div id="pf-models-list"></div>
+          <button type="button" id="pf-add-model" class="btn-small">+ Add Model</button>
+        </div>
+        <div class="form-group">
+          <label>Transformers</label>
+          <div id="pf-transformers-list"></div>
+          <button type="button" id="pf-add-transformer" class="btn-small">+ Add Transformer</button>
+        </div>
+        <div class="form-actions">
+          <button type="button" id="pf-cancel">Cancel</button>
+          <button type="button" id="pf-delete" class="btn-danger hidden">Delete Provider</button>
+          <button type="submit" id="pf-save" class="btn-primary">Save</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- CCR Status -->
+    <footer id="footer">
+      <span id="ccr-status">CCR: checking...</span>
+      <button id="btn-restart-ccr">Restart CCR</button>
+    </footer>
+  </div>
+  <script nonce="{{nonce}}" src="{{jsUri}}"></script>
+</body>
+</html>
