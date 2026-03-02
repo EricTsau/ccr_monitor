@@ -7,8 +7,12 @@
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": ["Other"],
-  "activationEvents": ["onStartupFinished"],
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -23,6 +27,14 @@
       {
         "command": "ccr-monitor.restartCcr",
         "title": "CCR Monitor: Restart CCR"
+      },
+      {
+        "command": "ccr-monitor.showDiagnostics",
+        "title": "CCR Monitor: Show Diagnostics"
+      },
+      {
+        "command": "ccr-monitor.showHealthLog",
+        "title": "CCR Monitor: Show Health Check Log"
       }
     ],
     "configuration": {
@@ -59,5 +71,8 @@
     "@types/vscode": "^1.85.0",
     "@vscode/vsce": "^3.0.0",
     "typescript": "^5.5.0"
+  },
+  "dependencies": {
+    "proxy-agent": "^6.5.0"
   }
 }

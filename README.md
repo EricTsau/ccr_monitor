@@ -64,10 +64,11 @@ npm run compile
 
 | 圖示 | 意義 |
 |------|---------|
-| $(check) CCR | 所有供應商皆正常 |
-| $(warning) CCR (黃色) | 部分供應商異常 |
-| $(error) CCR (紅色) | 所有供應商皆異常 |
+| $(check) CCR | 預設供應商與模型皆可正常運作 |
+| $(warning) CCR (黃色) | 預設供應商不可用，但有其他可用 |
+| $(error) CCR (紅色) | 沒有任何供應商可用 |
 | $(sync~spin) CCR | 檢查中... |
+| $(x) CCR: not installed | CCR 未安裝 |
 
 ### 編輯供應商
 
@@ -149,8 +150,6 @@ ccr-monitor/
 │   │   └── style.css         # 使用 VS Code 主題變數的樣式
 │   └── types/
 │       └── config.ts         # TypeScript 型別定義
-└── docs/
-    └── plans/                # 設計與實作文件
 ```
 
 ## 運作原理
@@ -171,4 +170,4 @@ ccr-monitor/
 
 ## 授權條款
 
-MIT
+MIT License - 詳見 LICENSE 檔案

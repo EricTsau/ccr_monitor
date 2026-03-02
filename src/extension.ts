@@ -28,6 +28,9 @@ export async function activate(context: vscode.ExtensionContext) {
       }),
       vscode.commands.registerCommand('ccr-monitor.refreshHealth', () => {}),
       vscode.commands.registerCommand('ccr-monitor.restartCcr', () => {}),
+      vscode.commands.registerCommand('ccr-monitor.showDiagnostics', () => {
+        ccrProcess.showDiagnostics();
+      }),
     );
     context.subscriptions.push(statusBar, ccrProcess, webviewPanel);
     console.log('CCR Monitor: Claude Code Router not installed, skipping health monitoring');
@@ -72,6 +75,12 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('ccr-monitor.restartCcr', () => {
       handleRestartCcr();
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('ccr-monitor.showHealthLog', () => {
+      healthMonitor.showLog();
     }),
   );
 
