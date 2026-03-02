@@ -83,6 +83,8 @@ export function activate(context: vscode.ExtensionContext) {
         updated.Providers[msg.payload.index] = msg.payload.provider as CcrConfig['Providers'][number];
         if (configManager.save(updated)) {
           await promptRestart();
+        } else {
+          vscode.window.showErrorMessage('Failed to save CCR config.');
         }
         break;
       }
@@ -94,6 +96,8 @@ export function activate(context: vscode.ExtensionContext) {
         updated.Providers = [...config.Providers, msg.payload.provider as CcrConfig['Providers'][number]];
         if (configManager.save(updated)) {
           await promptRestart();
+        } else {
+          vscode.window.showErrorMessage('Failed to save CCR config.');
         }
         break;
       }
@@ -105,6 +109,8 @@ export function activate(context: vscode.ExtensionContext) {
         updated.Providers = config.Providers.filter((_, i) => i !== msg.payload.index);
         if (configManager.save(updated)) {
           await promptRestart();
+        } else {
+          vscode.window.showErrorMessage('Failed to save CCR config.');
         }
         break;
       }
@@ -115,6 +121,8 @@ export function activate(context: vscode.ExtensionContext) {
         const updated = { ...config, Router: msg.payload.router as CcrConfig['Router'] };
         if (configManager.save(updated)) {
           await promptRestart();
+        } else {
+          vscode.window.showErrorMessage('Failed to save CCR config.');
         }
         break;
       }
@@ -132,6 +140,8 @@ export function activate(context: vscode.ExtensionContext) {
         if (configManager.save(updated)) {
           await handleRestartCcr();
           healthMonitor.checkAll();
+        } else {
+          vscode.window.showErrorMessage('Failed to save CCR config.');
         }
         break;
       }

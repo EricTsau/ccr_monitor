@@ -9,8 +9,8 @@ export class CcrProcessManager implements vscode.Disposable {
 
   async isRunning(): Promise<boolean> {
     try {
-      const { stdout } = await execAsync('ps aux');
-      return stdout.includes('claude-code-router');
+      const { stdout } = await execAsync('pgrep -f claude-code-router');
+      return stdout.trim().length > 0;
     } catch {
       return false;
     }

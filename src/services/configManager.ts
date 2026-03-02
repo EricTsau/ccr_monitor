@@ -8,6 +8,7 @@ export class ConfigManager implements vscode.Disposable {
   private _config: CcrConfig | null = null;
   private _activeSource: ConfigSource | null = null;
   private _watcher: fs.FSWatcher | null = null;
+  private _debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly _onDidChangeConfig = new vscode.EventEmitter<CcrConfig>();
   readonly onDidChangeConfig = this._onDidChangeConfig.event;
 
@@ -119,7 +120,8 @@ export class ConfigManager implements vscode.Disposable {
     try {
       this._watcher = fs.watch(this._activeSource.path, (eventType) => {
         if (eventType === 'change') {
-          setTimeout(() => this.load(this._activeSource!), 200);
+          if (this._debounceTimer) { clearTimeout(this._debounceTimer); }
+          this._debounceTimer = setTimeout(() => this.load(this._activeSource!), 200);
         }
       });
     } catch {

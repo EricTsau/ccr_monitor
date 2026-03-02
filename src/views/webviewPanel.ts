@@ -9,7 +9,6 @@ export type WebviewMessage =
   | { type: 'deleteProvider'; payload: { index: number } }
   | { type: 'addProvider'; payload: { provider: unknown } }
   | { type: 'saveRouter'; payload: { router: unknown } }
-  | { type: 'saveGlobalSettings'; payload: { settings: unknown } }
   | { type: 'quickSwitch'; payload: { routeKey: string; providerModel: string } }
   | { type: 'restartCcr' }
   | { type: 'switchConfigSource'; payload: { sourceType: string } }
@@ -26,7 +25,7 @@ export interface WebviewState {
 export class WebviewPanelManager implements vscode.Disposable {
   private _panel: vscode.WebviewPanel | null = null;
   private readonly _disposables: vscode.Disposable[] = [];
-  private _onDidReceiveMessage = new vscode.EventEmitter<WebviewMessage>();
+  private readonly _onDidReceiveMessage = new vscode.EventEmitter<WebviewMessage>();
   readonly onDidReceiveMessage = this._onDidReceiveMessage.event;
 
   constructor(private readonly _extensionUri: vscode.Uri) {}
@@ -48,7 +47,7 @@ export class WebviewPanelManager implements vscode.Disposable {
       {
         enableScripts: true,
         retainContextWhenHidden: true,
-        localResourceRoots: [vscode.Uri.joinPath(this._extensionUri, 'src', 'webview')],
+        localResourceRoots: [vscode.Uri.joinPath(this._extensionUri, 'media')],
       },
     );
 
@@ -72,14 +71,14 @@ export class WebviewPanelManager implements vscode.Disposable {
   }
 
   private _getHtmlContent(webview: vscode.Webview): string {
-    const htmlPath = path.join(this._extensionUri.fsPath, 'src', 'webview', 'index.html');
+    const htmlPath = path.join(this._extensionUri.fsPath, 'media', 'index.html');
     let html = fs.readFileSync(htmlPath, 'utf-8');
 
     const cssUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'src', 'webview', 'style.css'),
+      vscode.Uri.joinPath(this._extensionUri, 'media', 'style.css'),
     );
     const jsUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'src', 'webview', 'main.js'),
+      vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js'),
     );
 
     const nonce = this._getNonce();
