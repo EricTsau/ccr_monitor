@@ -20,7 +20,7 @@ export class StatusBarManager implements vscode.Disposable {
     switch (health) {
       case 'all-healthy':
         this._item.text = '$(check) CCR';
-        this._item.backgroundColor = undefined;
+        this._item.backgroundColor = new vscode.ThemeColor('ccr-monitor.healthyBackground');
         this._item.color = new vscode.ThemeColor('statusBarItem.foreground');
         this._item.tooltip = 'CCR Monitor - All providers healthy';
         break;

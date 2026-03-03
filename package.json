@@ -15,6 +15,17 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "colors": [
+      {
+        "id": "ccr-monitor.healthyBackground",
+        "description": "Background color for healthy status bar item",
+        "defaults": {
+          "dark": "#1d4f1d",
+          "light": "#90EE90",
+          "highContrast": "#90EE90"
+        }
+      }
+    ],
     "commands": [
       {
         "command": "ccr-monitor.openDashboard",

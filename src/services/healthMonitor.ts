@@ -38,9 +38,9 @@ export class HealthMonitor implements vscode.Disposable {
     }
 
     const defaultValue = config.Router.default;
-    const parts = defaultValue.split('.');
+    const parts = defaultValue.split(',');
     const defaultProvider = parts[0];
-    const defaultModel = parts.length > 1 ? parts.slice(1).join('.') : undefined;
+    const defaultModel = parts.length > 1 ? parts.slice(1).join(',') : undefined;
 
     this.log(`[DEBUG] getOverallHealth: default=${defaultValue}, provider=${defaultProvider}, model=${defaultModel}`);
     return this._calculateWithDefault(defaultProvider, defaultModel);
@@ -73,12 +73,12 @@ export class HealthMonitor implements vscode.Disposable {
     if (defaultModel && defaultHealth.availableModels.length > 0) {
       // Check if the model exists in available models (handle both full names and simple names)
       const modelExists = defaultHealth.availableModels.some((m) => {
-        // Match either exact ID or the last part after / or .
+        // Match either exact ID or the last part after / or ,
         return m === defaultModel ||
                m.endsWith(`/${defaultModel}`) ||
-               m.endsWith(`.${defaultModel}`) ||
+               m.endsWith(`,${defaultModel}`) ||
                m.split('/').pop() === defaultModel ||
-               m.split('.').pop() === defaultModel;
+               m.split(',').pop() === defaultModel;
       });
 
       this.log(`[DEBUG] Model exists check: ${modelExists}`);
