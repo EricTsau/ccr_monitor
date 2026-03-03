@@ -33,14 +33,16 @@ export class HealthMonitor implements vscode.Disposable {
   getOverallHealth(): OverallHealth {
     const config = this.configManager.config;
     if (!config || !config.Router || !config.Router.default) {
+      this.log('[DEBUG] No default config, using _calculateFromHealthMap');
       return this._calculateFromHealthMap();
     }
 
     const defaultValue = config.Router.default;
-    const parts = defaultValue.split('/');
+    const parts = defaultValue.split('.');
     const defaultProvider = parts[0];
-    const defaultModel = parts.length > 1 ? parts[1] : undefined;
+    const defaultModel = parts.length > 1 ? parts.slice(1).join('.') : undefined;
 
+    this.log(`[DEBUG] getOverallHealth: default=${defaultValue}, provider=${defaultProvider}, model=${defaultModel}`);
     return this._calculateWithDefault(defaultProvider, defaultModel);
   }
 
@@ -56,9 +58,14 @@ export class HealthMonitor implements vscode.Disposable {
   private _calculateWithDefault(defaultProvider: string, defaultModel?: string): OverallHealth {
     const defaultHealth = this._healthMap.get(defaultProvider);
 
+    this.log(`[DEBUG] _calculateWithDefault: provider=${defaultProvider}, model=${defaultModel}`);
+    this.log(`[DEBUG] Default provider health: ${defaultHealth ? defaultHealth.status : 'not found'}`);
+    this.log(`[DEBUG] Available models: ${defaultHealth?.availableModels?.join(', ') || 'none'}`);
+
     if (!defaultHealth || defaultHealth.status !== 'healthy') {
       // Default provider unavailable, check if any other providers are healthy
       const healthyCount = [...this._healthMap.values()].filter(h => h.status === 'healthy').length;
+      this.log(`[DEBUG] Default provider unhealthy, healthy count=${healthyCount}`);
       return healthyCount > 0 ? 'default-unavailable' : 'all-down';
     }
 
@@ -66,17 +73,25 @@ export class HealthMonitor implements vscode.Disposable {
     if (defaultModel && defaultHealth.availableModels.length > 0) {
       // Check if the model exists in available models (handle both full names and simple names)
       const modelExists = defaultHealth.availableModels.some((m) => {
-        // Match either exact ID or the last part after /
-        return m === defaultModel || m.endsWith(`/${defaultModel}`) || m === defaultModel.split('/').pop();
+        // Match either exact ID or the last part after / or .
+        return m === defaultModel ||
+               m.endsWith(`/${defaultModel}`) ||
+               m.endsWith(`.${defaultModel}`) ||
+               m.split('/').pop() === defaultModel ||
+               m.split('.').pop() === defaultModel;
       });
+
+      this.log(`[DEBUG] Model exists check: ${modelExists}`);
 
       if (!modelExists) {
         // Default model not available in this provider
         const healthyCount = [...this._healthMap.values()].filter(h => h.status === 'healthy').length;
+        this.log(`[DEBUG] Model not available, healthy count=${healthyCount}`);
         return healthyCount > 0 ? 'default-unavailable' : 'all-down';
       }
     }
 
+    this.log(`[DEBUG] Returning all-healthy`);
     return 'all-healthy';
   }
 
@@ -160,10 +175,15 @@ export class HealthMonitor implements vscode.Disposable {
   }
 
   private _shouldBypassProxy(hostname: string): boolean {
-    // Get NO_PROXY from VS Code settings, then environment
-    const noProxySetting = vscode.workspace.getConfiguration('http').get<string>('proxyBypass');
-    const noProxy = noProxySetting ||
-                    process.env.NO_PROXY || process.env.no_proxy || '';
+    // Get NO_PROXY from VS Code settings (http.noProxy), then environment
+    const noProxySetting = vscode.workspace.getConfiguration('http').get<string | string[]>('noProxy');
+    let noProxy = '';
+    if (typeof noProxySetting === 'string') {
+      noProxy = noProxySetting;
+    } else if (Array.isArray(noProxySetting)) {
+      noProxy = noProxySetting.join(',');
+    }
+    noProxy = noProxy || process.env.NO_PROXY || process.env.no_proxy || '';
 
     if (!noProxy) { return false; }
 
@@ -172,14 +192,32 @@ export class HealthMonitor implements vscode.Disposable {
 
     for (const pattern of noProxyList) {
       if (pattern === '*') { return true; }
+
       // Remove leading dots for comparison
       const cleanPattern = pattern.replace(/^\.+/, '').toLowerCase();
       const cleanTarget = targetHostname.replace(/^\.+/, '');
+
       // Exact match or suffix match
       if (cleanTarget === cleanPattern || cleanTarget.endsWith('.' + cleanPattern)) {
         return true;
       }
-      // CIDR notation for IP ranges
+
+      // Wildcard match for patterns like "10.*" or "172.18.*"
+      if (cleanPattern.includes('*')) {
+        const regexPattern = cleanPattern
+          .replace(/\./g, '\\.')
+          .replace(/\*/g, '.*');
+        try {
+          const regex = new RegExp(`^${regexPattern}$`);
+          if (regex.test(cleanTarget)) {
+            return true;
+          }
+        } catch {
+          // Invalid regex, ignore
+        }
+      }
+
+      // CIDR notation for IP ranges (e.g., "192.168.0.0/16")
       if (cleanPattern.includes('/')) {
         try {
           if (this._ipMatchesCidr(hostname, cleanPattern)) {
@@ -232,21 +270,38 @@ export class HealthMonitor implements vscode.Disposable {
         timeout: timeoutMs,
       };
 
-      // If proxy is set and not bypassing, use it
+      // If proxy is set and not bypassing, use it via HTTP CONNECT tunnel
+      let usingProxy = false;
       if (proxyUrl && !bypassProxy) {
         this.log(`  Using proxy: ${proxyUrl}`);
+        // Ensure proxy URL has protocol prefix
+        let proxyUrlWithProtocol = proxyUrl;
+        if (!proxyUrlWithProtocol.startsWith('http://') && !proxyUrlWithProtocol.startsWith('https://')) {
+          proxyUrlWithProtocol = 'http://' + proxyUrlWithProtocol;
+        }
         try {
-          const ProxyAgent = require('proxy-agent');
-          const agent = new ProxyAgent(proxyUrl);
-          (options as https.RequestOptions & { agent: typeof agent }).agent = agent;
-        } catch {
-          this.log(`  Failed to parse proxy URL: ${proxyUrl}`);
+          const proxyParsed = new URL(proxyUrlWithProtocol);
+          usingProxy = true;
+          options.host = proxyParsed.hostname;
+          options.port = proxyParsed.port || 80;
+          options.path = `${parsed.hostname}:${parsed.port || (parsed.protocol === 'https:' ? 443 : 80)}${parsed.pathname}${parsed.search}`;
+          if (apiKey) {
+            headers['Proxy-Authorization'] = `Basic ${Buffer.from('').toString('base64')}`;
+          }
+        } catch (err) {
+          this.log(`  Failed to parse proxy URL: ${err}`);
         }
       } else if (bypassProxy) {
         this.log(`  Bypassing proxy for: ${parsed.hostname}`);
       }
 
       const req = mod.get(options, (res) => {
+        // Handle proxy CONNECT response (407)
+        if (usingProxy && res.statusCode === 407) {
+          this.log(`  Proxy requires authentication (HTTP 407)`);
+          reject(new Error('HTTP 407 Proxy Authentication Required'));
+          return;
+        }
         let data = '';
         res.on('data', (chunk) => { data += chunk; });
         res.on('end', () => {
