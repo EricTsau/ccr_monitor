@@ -327,13 +327,15 @@
 
     var router = currentConfig.Router || {};
     var keys = ['default', 'background', 'think', 'longContext', 'webSearch', 'image'];
+    var routerOptions = buildRouterOptions();
 
     var html = '';
     for (var i = 0; i < keys.length; i++) {
       var k = keys[i];
+      var selectOptions = buildSelectOptions(routerOptions, router[k] || '');
       html += '<div class="router-edit-row">' +
         '<label>' + k + ':</label>' +
-        '<input type="text" class="router-input" data-key="' + k + '" value="' + escapeHtml(router[k] || '') + '" placeholder="provider-name,model-name">' +
+        '<select class="router-select" data-key="' + k + '">' + selectOptions + '</select>' +
       '</div>';
     }
 
@@ -354,9 +356,9 @@
 
     document.getElementById('re-save')?.addEventListener('click', function() {
       var newRouter = {};
-      editor.querySelectorAll('.router-input').forEach(function(input) {
-        if (input.value.trim()) {
-          newRouter[input.dataset.key] = input.value.trim();
+      editor.querySelectorAll('.router-select').forEach(function(select) {
+        if (select.value) {
+          newRouter[select.dataset.key] = select.value;
         }
       });
       var threshold = document.getElementById('re-threshold');
@@ -369,6 +371,45 @@
   }
 
   // ── Helpers ──
+  function buildRouterOptions() {
+    var options = [];
+    // First option: "(not set)"
+    options.push({ value: '', label: '(not set)' });
+
+    if (!currentConfig || !currentConfig.Providers) {
+      return options;
+    }
+
+    var providers = currentConfig.Providers;
+    for (var i = 0; i < providers.length; i++) {
+      var provider = providers[i];
+      var providerName = provider.name;
+      var models = provider.models || [];
+      for (var j = 0; j < models.length; j++) {
+        var model = models[j];
+        var modelName = typeof model === 'string' ? model : model.name;
+        if (providerName && modelName) {
+          options.push({
+            value: providerName + ',' + modelName,
+            label: providerName + ' / ' + modelName
+          });
+        }
+      }
+    }
+
+    return options;
+  }
+
+  function buildSelectOptions(options, currentValue) {
+    var html = '';
+    for (var i = 0; i < options.length; i++) {
+      var opt = options[i];
+      var selected = opt.value === currentValue ? ' selected' : '';
+      html += '<option value="' + escapeHtml(opt.value) + '"' + selected + '>' + escapeHtml(opt.label) + '</option>';
+    }
+    return html;
+  }
+
   function addListItem(containerId, value) {
     var container = document.getElementById(containerId);
     if (!container) { return; }
