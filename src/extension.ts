@@ -27,7 +27,7 @@ export async function activate(context: vscode.ExtensionContext) {
         });
       }),
       vscode.commands.registerCommand('ccr-monitor.refreshHealth', () => {}),
-      vscode.commands.registerCommand('ccr-monitor.restartCcr', () => {}),
+      vscode.commands.registerCommand('ccr.restart', () => {}),
       vscode.commands.registerCommand('ccr-monitor.showDiagnostics', () => {
         ccrProcess.showDiagnostics();
       }),
@@ -73,7 +73,7 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('ccr-monitor.restartCcr', () => {
+    vscode.commands.registerCommand('ccr.restart', () => {
       handleRestartCcr();
     }),
   );

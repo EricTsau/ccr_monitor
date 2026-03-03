@@ -83,67 +83,8 @@ export class CcrProcessManager implements vscode.Disposable {
   }
 
   async isRunning(): Promise<boolean> {
-    if (process.platform === 'win32') {
-      try {
-        await execAsync('tasklist /FI "IMAGENAME eq node.exe"', { timeout: 5000 });
-        // On Windows, we check for node.exe running with claude-code-router arg
-        const { stdout } = await execAsync(
-          'tasklist /NH /FO CSV 2>nul | findstr /I "node.exe" | findstr /I "claude-code-router"',
-          { timeout: 5000 }
-        );
-        return stdout.trim().length > 0;
-      } catch {
-        return false;
-      }
-    } else {
-      try {
-        const { stdout } = await execAsync('pgrep -f claude-code-router');
-        return stdout.trim().length > 0;
-      } catch {
-        return false;
-      }
-    }
-  }
-
-  async getPid(): Promise<number | null> {
-    if (process.platform === 'win32') {
-      try {
-        const { stdout } = await execAsync(
-          'wmic process where "name=\'node.exe\' and commandline like \'%claude-code-router%\'" get ProcessId 2>nul',
-          { timeout: 5000 }
-        );
-        const lines = stdout.trim().split('\n');
-        if (lines.length >= 2) {
-          const pid = parseInt(lines[1].trim(), 10);
-          return isNaN(pid) ? null : pid;
-        }
-        return null;
-      } catch {
-        return null;
-      }
-    } else {
-      try {
-        const { stdout } = await execAsync(
-          "ps aux | grep 'claude-code-router' | grep -v grep | awk '{print $2}' | head -1"
-        );
-        const pid = parseInt(stdout.trim(), 10);
-        return isNaN(pid) ? null : pid;
-      } catch {
-        return null;
-      }
-    }
-  }
-
-  async kill(): Promise<boolean> {
-    const pid = await this.getPid();
-    if (!pid) { return false; }
     try {
-      if (process.platform === 'win32') {
-        await execAsync(`taskkill /PID ${pid} /F`, { timeout: 5000 });
-      } else {
-        await execAsync(`kill ${pid}`);
-      }
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await execAsync('ccr status', { timeout: 5000 });
       return true;
     } catch {
       return false;
@@ -151,11 +92,6 @@ export class CcrProcessManager implements vscode.Disposable {
   }
 
   async restart(): Promise<void> {
-    const wasRunning = await this.isRunning();
-    if (wasRunning) {
-      await this.kill();
-    }
-
     if (this._terminal) {
       this._terminal.dispose();
     }
@@ -163,7 +99,18 @@ export class CcrProcessManager implements vscode.Disposable {
       name: 'CCR',
       hideFromUser: false,
     });
-    this._terminal.sendText('npx claude-code-router');
+
+    const running = await this.isRunning();
+
+    if (running) {
+      // 已運行：先停止再啟動
+      this._terminal.sendText('ccr stop');
+      this._terminal.sendText('ccr start');
+    } else {
+      // 未運行：直接啟動
+      this._terminal.sendText('ccr start');
+    }
+
     this._terminal.show(true);
   }
 

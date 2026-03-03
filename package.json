@@ -25,8 +25,8 @@
         "title": "CCR Monitor: Refresh Health Check"
       },
       {
-        "command": "ccr-monitor.restartCcr",
-        "title": "CCR Monitor: Restart CCR"
+        "command": "ccr.restart",
+        "title": "CCR: Restart"
       },
       {
         "command": "ccr-monitor.showDiagnostics",
@@ -71,8 +71,5 @@
     "@types/vscode": "^1.85.0",
     "@vscode/vsce": "^3.0.0",
     "typescript": "^5.5.0"
-  },
-  "dependencies": {
-    "proxy-agent": "^6.5.0"
   }
 }
