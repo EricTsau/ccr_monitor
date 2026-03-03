@@ -50,7 +50,7 @@ export class CcrProcessManager implements vscode.Disposable {
   private async checkNpx(): Promise<boolean> {
     this.log('Attempting npx claude-code-router --version');
     try {
-      const { stdout } = await execAsync('npx claude-code-router --version', { timeout: 10000 });
+      const { stdout } = await execAsync('npx claude-code-router --version', { timeout: 20000 });
       this.log(`npx succeeded, output: ${stdout.trim()}`);
       return true;
     } catch (error: unknown) {

@@ -4,6 +4,10 @@
   "description": "Monitor Claude Code Router provider health, view/edit config, and manage CCR process",
   "version": "0.1.0",
   "publisher": "ccr-monitor",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EricTsau/ccr_monitor"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
